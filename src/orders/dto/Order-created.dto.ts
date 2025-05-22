@@ -1,18 +1,17 @@
 
-import { IsString, IsEnum, IsOptional, IsUUID, IsNotEmpty, IsEmail } from 'class-validator';
-import { TodoListState } from '../enums/enums';
-import { NotIncludeWord } from './Custom-Validations/CustomValidator';
+import { Type } from 'class-transformer';
+import { IsArray, IsNotEmpty, IsString, ValidateNested } from 'class-validator';
+import { OrderItemDto } from './OrderIem-created.dto';
 
-export class OrderUserDto {
+export class OrderDto {
   @IsString()
   @IsNotEmpty()
-  
-  name: string;
+   userId: string;
 
-  @IsString()
-  @IsNotEmpty()
-  @IsEmail()
-  email: string;
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => OrderItemDto)
+   items : OrderItemDto[]
 
 }
 

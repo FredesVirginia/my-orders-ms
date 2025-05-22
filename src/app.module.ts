@@ -7,6 +7,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { envs } from './orders/config';
 import { OrderModule } from './orders/orders.module';
 import { Order } from './orders/entity/order.entity';
+import { OrderItem } from './orders/entity/orderItem.entity';
 
 
 @Module({
@@ -20,7 +21,7 @@ import { Order } from './orders/entity/order.entity';
       username: envs.dbUser,
       password: envs.dbPassword,
       database: envs.dbName,
-      entities: [Order],
+      entities: [Order , OrderItem],
       synchronize: true,
     }),
   ],

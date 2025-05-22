@@ -3,7 +3,7 @@ import { Body, Controller, Delete, Get, Param,  ParseUUIDPipe, Post } from '@nes
 
 import { Payload } from '@nestjs/microservices';
 
-import { OrderUserDto } from './dto/Order-created.dto';
+import { OrderDto } from './dto/Order-created.dto';
 import { OrderService } from './orders.service';
 
 @Controller('orders')
@@ -12,7 +12,7 @@ export class OrderController {
 
 
     @Post()
-    async createOrder(@Body() orderDto : OrderUserDto){
+    async createOrder(@Body() orderDto : OrderDto){
         const newTodoList = await this.orderService.createOrder(orderDto)
         return newTodoList
     }

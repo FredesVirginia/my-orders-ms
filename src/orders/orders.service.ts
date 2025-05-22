@@ -11,7 +11,9 @@ import {Order} from "./entity/order.entity"
 import { ILike, Repository } from 'typeorm';
 
 import { RpcException } from '@nestjs/microservices';
-import { OrderUserDto } from './dto/Order-created.dto';
+import { OrderDto } from './dto/Order-created.dto';
+import { OrderItem } from './entity/orderItem.entity';
+
 
 @Injectable()
 export class OrderService {
@@ -20,18 +22,25 @@ export class OrderService {
     private orderRepository: Repository<Order>,
   ) {}
 
-  async createOrder(userDto: OrderUserDto) {
+  async createOrder(orderDto: OrderDto) {
     try {
-      const userNew = await this.orderRepository.save(userDto);
-      return userNew;
+      const order = new Order();
+      order.userId = orderDto.userId;
+      order.items = orderDto.items.map((item)=>{
+        const orderItem = new OrderItem();
+        orderItem.productId = item.productId;
+        orderItem.quantity = item.quantity;
+        orderItem.price = item.price;
+        return orderItem;
+      })
+
+      const total = order.items.reduce((sum, item) => sum + parseInt(item.price) * item.quantity, 0);
+      order.total = total.toString()
+  return this.orderRepository.save(order);
     } catch (error) {
       console.log('EEROR FUE ', error);
 
-      if (error.name === 'QueryFailedError') {
-        throw new BadRequestException(
-          'Datos inválidos o violación de restricciones',
-        );
-      }
+     
 
       throw new InternalServerErrorException('Error interno del servidor');
     }
