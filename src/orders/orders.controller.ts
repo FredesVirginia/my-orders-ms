@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Get, Param,  ParseUUIDPipe, Post } from '@nestjs/common';
 
 
-import { Payload } from '@nestjs/microservices';
+import { MessagePattern, Payload } from '@nestjs/microservices';
 
 import { OrderDto } from './dto/Order-created.dto';
 import { OrderService } from './orders.service';
@@ -10,7 +10,7 @@ import { OrderService } from './orders.service';
 export class OrderController {
     constructor (private readonly orderService : OrderService){}
 
-
+    @MessagePattern('create-order')
     @Post()
     async createOrder(@Body() orderDto : OrderDto){
         const newTodoList = await this.orderService.createOrder(orderDto)
