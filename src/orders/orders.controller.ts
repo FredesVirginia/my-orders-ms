@@ -17,9 +17,16 @@ export class OrderController {
         return newTodoList
     }
 
-    @Get()
-    async getAllOrders(){
-        return await this.orderService.getAllOrder()
+    // @Get()
+    // async getAllOrders(){
+    //     return await this.orderService.getAllOrder()
+    // }
+
+
+    @MessagePattern('order-by-user')
+ 
+    async getAllOrdersByUser( @Payload() userId: string){
+        return this.orderService.getAllOrdersByUser(userId);
     }
 
     @Get(':id')

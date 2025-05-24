@@ -57,6 +57,35 @@ export class OrderService {
     }
   }
 
+  async getAllOrdersByUser(id : string){
+      console.log('ID recibido en microservicio:', id); // <- Agrega esto
+      try {
+         const allOrderByUser = await this.orderRepository.find({
+            where: { userId: id },
+            relations: ['items'], 
+          });
+
+        if (allOrderByUser.length > 0) {
+            return {
+              userIdsssssssssssssss: id,
+              data: allOrderByUser,
+            };
+          }
+
+        return {
+          userId: id,
+          message: "El usuario no ha realizado compras todavía",
+          data: [],
+        };
+      }catch(error){
+        throw new RpcException({
+          error
+        })
+      }
+
+
+  }
+
   async getIdTodoList(id:string){
     const todoListId = await this.orderRepository.findOneBy({id})
     if(!todoListId){
