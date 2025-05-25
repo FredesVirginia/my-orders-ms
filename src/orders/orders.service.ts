@@ -1,14 +1,13 @@
 import {
-  BadRequestException,
   HttpStatus,
   Injectable,
   InternalServerErrorException,
-  NotFoundException,
+  NotFoundException
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
-import {Order} from "./entity/order.entity"
-import { ILike, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
+import { Order } from "./entity/order.entity";
 
 import { RpcException } from '@nestjs/microservices';
 import { OrderDto } from './dto/Order-created.dto';
@@ -20,6 +19,8 @@ export class OrderService {
   constructor(
     @InjectRepository(Order)
     private orderRepository: Repository<Order>,
+     @InjectRepository(OrderItem)
+    private readonly orderItemRepository: Repository<OrderItem>,
   ) {}
 
   async createOrder(orderDto: OrderDto) {
@@ -57,23 +58,33 @@ export class OrderService {
     }
   }
 
-  async getAllOrdersByUser(id : string){
-      console.log('ID recibido en microservicio:', id); // <- Agrega esto
+  async getAllOrdersByUser(userId : string){
+      console.log('ID recibido en microservicio:', userId); 
       try {
-         const allOrderByUser = await this.orderRepository.find({
-            where: { userId: id },
-            relations: ['items'], 
-          });
+        //  const allOrderByUser = await this.orderRepository.find({
+        //     where: { userId: id },
+        //     relations: ['items'], 
+        //   });
 
-        if (allOrderByUser.length > 0) {
+        const result = await this.orderItemRepository
+            .createQueryBuilder('item')
+            .innerJoin('item.order', 'order')
+            .select('item.productId', 'productId')
+            .addSelect('SUM(item.quantity)', 'total')
+            .where('order.userId = :userId', { userId })
+            .groupBy('item.productId')
+            .orderBy('total', 'DESC')
+            .getRawMany();
+
+        if (result.length > 0) {
             return {
-              userIdsssssssssssssss: id,
-              data: allOrderByUser,
+              userIdsssssssssssssss: userId,
+              data: result,
             };
           }
 
         return {
-          userId: id,
+          userId: userId,
           message: "El usuario no ha realizado compras todavía",
           data: [],
         };

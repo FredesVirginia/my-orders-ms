@@ -29,6 +29,12 @@ export class OrderController {
         return this.orderService.getAllOrdersByUser(userId);
     }
 
+
+    @MessagePattern('get-purchased-products')
+        async handleGetPurchasedProducts(@Payload() userId: string) {
+        return this.orderService.getAllOrdersByUser(userId);
+    }
+
     @Get(':id')
     async getTodoListId(@Param('id' , new ParseUUIDPipe()) id: string){
         return this.orderService.getIdTodoList(id)
