@@ -24,9 +24,14 @@ export class OrderController {
 
 
     @MessagePattern('order-by-user')
- 
     async getAllOrdersByUser( @Payload() userId: string){
         return this.orderService.getAllOrdersByUser(userId);
+    }
+
+
+    @MessagePattern('order-total-user')
+    async getAllTotalOrder (@Payload() userId : string){
+        return this.orderService.getAllTotalOrderByUser(userId)
     }
 
 

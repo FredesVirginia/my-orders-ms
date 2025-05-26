@@ -76,18 +76,20 @@ export class OrderService {
             .orderBy('total', 'DESC')
             .getRawMany();
 
+            console.log("EL RESULT ES " , result)
+
         if (result.length > 0) {
             return {
               userIdsssssssssssssss: userId,
               data: result,
             };
+          }else {
+            return {
+              MESSAGE : "Ño hay Compras"
+            }
           }
 
-        return {
-          userId: userId,
-          message: "El usuario no ha realizado compras todavía",
-          data: [],
-        };
+       
       }catch(error){
         throw new RpcException({
           error
@@ -96,6 +98,59 @@ export class OrderService {
 
 
   }
+
+
+async getAllTotalOrderByUser(userId: string) {
+  try {
+    const result1 = await this.orderRepository.createQueryBuilder('order')
+    .select('SUM(order.total)' , 'totalCompras')
+    .addSelect('COUNT(order.id)' , 'cantidadCompras')
+    .where('order.userId = :userId' , {userId})   
+     .getRawOne();
+
+     const result2 = await this.orderItemRepository.createQueryBuilder('orderItem')
+     .innerJoin('orderItem.order' , 'order')
+     .select('DISTINCT orderItem.productId' , 'productId')
+     .where('order.userId = :userId' , {userId})
+     .getMany()
+
+     
+     const result3 = await this.orderItemRepository.createQueryBuilder('orderItem')
+     .innerJoin('orderItem.order' , 'order')
+     .select('orderItem.productId' , 'productId')
+     .addSelect('SUM(orderItem.quantity)' , 'total')
+     .where('order.userId = :userId' , {userId})
+     .groupBy('orderItem.productId')
+     .orderBy('total' , 'DESC')
+     .limit(1)
+     .getRawOne();
+
+    if (result1 === 0) {
+      throw new RpcException({
+        status: 404,
+        message: `No se encontraron órdenes para el usuario con ID ${userId}`,
+      });
+    }
+    return {
+      totalCompras: parseFloat(result1.totalCompras) || 0,
+      cantidadCompras: parseInt(result1.cantidadCompras, 10) || 0,
+      productos: result2.map(p => p.productId),
+      productoMasComprado: result3 ? result3.productId : null,
+    };
+  } catch (error) {
+    console.log("El erroe fue " , error)
+   
+    if (error instanceof RpcException) throw error;
+
+  
+    throw new RpcException({
+      status: 500,
+      message: 'Error interno al obtener el total de órdenes',
+      details: error.message || error,
+    });
+  }
+}
+
 
   async getIdTodoList(id:string){
     const todoListId = await this.orderRepository.findOneBy({id})
