@@ -112,7 +112,7 @@ async getAllTotalOrderByUser(userId: string) {
      .innerJoin('orderItem.order' , 'order')
      .select('DISTINCT orderItem.productId' , 'productId')
      .where('order.userId = :userId' , {userId})
-     .getMany()
+     .getRawMany()
 
      
      const result3 = await this.orderItemRepository.createQueryBuilder('orderItem')
