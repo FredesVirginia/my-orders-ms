@@ -152,6 +152,90 @@ async getAllTotalOrderByUser(userId: string) {
 }
 
 
+async getHistoryUser(userId : string){
+  try{
+    const result = await this.orderRepository.createQueryBuilder("order")
+    .select('SUM(order.total)' , 'totalComprado')
+    .addSelect('COUNT(order.id)' , 'cantidadDeOrdenes')
+    .where('order.userId = :userId' , {userId})
+    .getRawOne();
+
+    const orders = await this.orderRepository.find({
+    where: { userId },
+
+    
+});
+
+const ordersAndOrderItem = await this.orderItemRepository.createQueryBuilder("itemsOrder")
+  .innerJoin('itemsOrder.order', 'ord')
+  .select([
+    'itemsOrder.orderId',
+    'ord.total',
+    'itemsOrder.quantity',
+    'itemsOrder.price',
+    'itemsOrder.productId',
+    'itemsOrder.updatedAt',
+  ])
+  .where('ord.userId = :userId', { userId })
+  // 
+  .getRawMany();
+
+
+  const groupedByOrderId = ordersAndOrderItem.reduce((acc, item) => {
+  const orderId = item.orderId;
+
+  if (!acc[orderId]) {
+    acc[orderId] = {
+      orderId,
+      total: item.ord_total,
+      items: []
+    };
+  }
+
+  acc[orderId].items.push({
+    quantity: item.itemsOrder_quantity,
+    productId: item.itemsOrder_productId,
+    price: item.itemsOrder_price,
+    updatedAt: item.itemsOrder_updatedAt,
+  });
+
+  return acc;
+}, {} as Record<string, {
+  orderId: string,
+  total: string,
+  items: Array<{
+    quantity: number,
+    productId: string,
+    price: string,
+    updatedAt: string
+  }>
+}>);
+
+// Si quieres un array en lugar de un objeto con keys:
+const groupedArray = Object.values(groupedByOrderId);
+
+
+    return {
+      result,
+      groupedArray
+    }
+    
+  }catch(error){
+     console.log("El error fue " , error)
+   
+    if (error instanceof RpcException) throw error;
+
+  
+    throw new RpcException({
+      status: 500,
+      message: 'Error interno al obtener el total de órdenes',
+      details: error.message || error,
+    });
+  }
+
+}
+
+
   async getIdTodoList(id:string){
     const todoListId = await this.orderRepository.findOneBy({id})
     if(!todoListId){

@@ -35,6 +35,12 @@ export class OrderController {
     }
 
 
+    @MessagePattern('history-order')
+    async getHistory (@Payload() userId : string){
+        return this.orderService.getHistoryUser(userId)
+    }
+
+
     @MessagePattern('get-purchased-products')
         async handleGetPurchasedProducts(@Payload() userId: string) {
         return this.orderService.getAllOrdersByUser(userId);
