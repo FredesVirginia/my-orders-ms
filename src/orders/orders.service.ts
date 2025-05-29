@@ -106,7 +106,7 @@ async getAllTotalOrderByUser(userId: string) {
     .select('SUM(order.total)' , 'totalCompras')
     .addSelect('COUNT(order.id)' , 'cantidadCompras')
     .where('order.userId = :userId' , {userId})   
-     .getRawOne();
+    .getRawOne();
 
      const result2 = await this.orderItemRepository.createQueryBuilder('orderItem')
      .innerJoin('orderItem.order' , 'order')
