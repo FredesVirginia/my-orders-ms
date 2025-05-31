@@ -34,7 +34,10 @@ export class OrderController {
         return this.orderService.getAllTotalOrderByUser(userId)
     }
 
-
+    @MessagePattern('product-average-mouth-by-user')
+    async getProductByUserForMouth (@Payload() userId : string){
+        return this.orderService.getProductForMountAverageByUser(userId)
+    }
     @MessagePattern('history-order')
     async getHistory (@Payload() userId : string){
         return this.orderService.getHistoryUser(userId)

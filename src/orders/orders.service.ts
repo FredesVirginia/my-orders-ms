@@ -61,10 +61,7 @@ export class OrderService {
   async getAllOrdersByUser(userId : string){
       console.log('ID recibido en microservicio:', userId); 
       try {
-        //  const allOrderByUser = await this.orderRepository.find({
-        //     where: { userId: id },
-        //     relations: ['items'], 
-        //   });
+        
 
         const result = await this.orderItemRepository
             .createQueryBuilder('item')
@@ -100,164 +97,187 @@ export class OrderService {
   }
 
 
-async getAllTotalOrderByUser(userId: string) {
-  try {
-    const result1 = await this.orderRepository.createQueryBuilder('order')
-    .select('SUM(order.total)' , 'totalCompras')
-    .addSelect('COUNT(order.id)' , 'cantidadCompras')
-    .where('order.userId = :userId' , {userId})   
-    .getRawOne();
+  async getAllTotalOrderByUser(userId: string) {
+    try {
+      const result1 = await this.orderRepository.createQueryBuilder('order')
+      .select('SUM(order.total)' , 'totalCompras')
+      .addSelect('COUNT(order.id)' , 'cantidadCompras')
+      .where('order.userId = :userId' , {userId})   
+      .getRawOne();
 
-     const result2 = await this.orderItemRepository.createQueryBuilder('orderItem')
-     .innerJoin('orderItem.order' , 'order')
-     .select('DISTINCT orderItem.productId' , 'productId')
-     .where('order.userId = :userId' , {userId})
-     .getRawMany()
+      const result2 = await this.orderItemRepository.createQueryBuilder('orderItem')
+      .innerJoin('orderItem.order' , 'order')
+      .select('DISTINCT orderItem.productId' , 'productId')
+      .where('order.userId = :userId' , {userId})
+      .getRawMany()
 
-     
-     const result3 = await this.orderItemRepository.createQueryBuilder('orderItem')
-     .innerJoin('orderItem.order' , 'order')
-     .select('orderItem.productId' , 'productId')
-     .addSelect('SUM(orderItem.quantity)' , 'total')
-     .where('order.userId = :userId' , {userId})
-     .groupBy('orderItem.productId')
-     .orderBy('total' , 'DESC')
-     .limit(1)
-     .getRawOne();
+      
+      const result3 = await this.orderItemRepository.createQueryBuilder('orderItem')
+      .innerJoin('orderItem.order' , 'order')
+      .select('orderItem.productId' , 'productId')
+      .addSelect('SUM(orderItem.quantity)' , 'total')
+      .where('order.userId = :userId' , {userId})
+      .groupBy('orderItem.productId')
+      .orderBy('total' , 'DESC')
+      .limit(1)
+      .getRawOne();
 
-    if (result1 === 0) {
+      if (result1 === 0) {
+        throw new RpcException({
+          status: 404,
+          message: `No se encontraron órdenes para el usuario con ID ${userId}`,
+        });
+      }
+      return {
+        totalCompras: parseFloat(result1.totalCompras) || 0,
+        cantidadCompras: parseInt(result1.cantidadCompras, 10) || 0,
+        productos: result2.map(p => p.productId),
+        productoMasComprado: result3 ? result3.productId : null,
+      };
+    } catch (error) {
+      console.log("El erroe fue " , error)
+    
+      if (error instanceof RpcException) throw error;
+
+    
       throw new RpcException({
-        status: 404,
-        message: `No se encontraron órdenes para el usuario con ID ${userId}`,
+        status: 500,
+        message: 'Error interno al obtener el total de órdenes',
+        details: error.message || error,
       });
     }
-    return {
-      totalCompras: parseFloat(result1.totalCompras) || 0,
-      cantidadCompras: parseInt(result1.cantidadCompras, 10) || 0,
-      productos: result2.map(p => p.productId),
-      productoMasComprado: result3 ? result3.productId : null,
-    };
-  } catch (error) {
-    console.log("El erroe fue " , error)
-   
-    if (error instanceof RpcException) throw error;
-
-  
-    throw new RpcException({
-      status: 500,
-      message: 'Error interno al obtener el total de órdenes',
-      details: error.message || error,
-    });
   }
-}
 
 
-async getHistoryUser(userId : string){
-  try{
-    const result = await this.orderRepository.createQueryBuilder("order")
-    .select('SUM(order.total)' , 'totalComprado')
-    .addSelect('COUNT(order.id)' , 'cantidadDeOrdenes')
-    .where('order.userId = :userId' , {userId})
-    .getRawOne();
-
-    const orders = await this.orderRepository.find({
-    where: { userId },
+  async getProductForMountAverageByUser(userId : string){
+   try{
+      const result = await this.orderRepository.createQueryBuilder('order')
+      .leftJoin('order.items' , 'items')
+      .select(`TO_CHAR(order.createdAt, 'YYYY-MM')`, 'mes')
+      .addSelect('COUNT(DISTINCT items.productId)' , 'cantidadProductos')
+      .addSelect('ROUND(AVG(items.quantity), 2)', 'promedio')
+       .where('order.userId = :userId' , {userId})   
+       .groupBy('mes')
+       .getRawMany()
 
     
-});
 
-const ordersAndOrderItem = await this.orderItemRepository.createQueryBuilder("itemsOrder")
-  .innerJoin('itemsOrder.order', 'ord')
-  .select([
-    'itemsOrder.orderId',
-    'ord.total',
-    'itemsOrder.quantity',
-    'itemsOrder.price',
-    'itemsOrder.productId',
-    'itemsOrder.updatedAt',
-  ])
-  .where('ord.userId = :userId', { userId })
-  // 
-  .getRawMany();
-
-
-  const groupedByOrderId = ordersAndOrderItem.reduce((acc, item) => {
-  const orderId = item.orderId;
-
-  if (!acc[orderId]) {
-    acc[orderId] = {
-      orderId,
-      total: item.ord_total,
-      items: []
-    };
+       return result
+      
+   }catch(error){
+    console.log("El error fue" , error)
+    throw new RpcException({
+      message: error
+    })
+   }
   }
 
-  acc[orderId].items.push({
-    quantity: item.itemsOrder_quantity,
-    productId: item.itemsOrder_productId,
-    price: item.itemsOrder_price,
-    updatedAt: item.itemsOrder_updatedAt,
+  async getHistoryUser(userId : string){
+    try{
+      const result = await this.orderRepository.createQueryBuilder("order")
+      .select('SUM(order.total)' , 'totalComprado')
+      .addSelect('COUNT(order.id)' , 'cantidadDeOrdenes')
+      .where('order.userId = :userId' , {userId})
+      .getRawOne();
+
+      const orders = await this.orderRepository.find({
+      where: { userId },
+
+      
   });
 
-  return acc;
-}, {} as Record<string, {
-  orderId: string,
-  total: string,
-  items: Array<{
-    quantity: number,
-    productId: string,
-    price: string,
-    updatedAt: string
-  }>
-}>);
+  const ordersAndOrderItem = await this.orderItemRepository.createQueryBuilder("itemsOrder")
+    .innerJoin('itemsOrder.order', 'ord')
+    .select([
+      'itemsOrder.orderId',
+      'ord.total',
+      'itemsOrder.quantity',
+      'itemsOrder.price',
+      'itemsOrder.productId',
+      'itemsOrder.updatedAt',
+    ])
+    .where('ord.userId = :userId', { userId })
+    // 
+    .getRawMany();
 
-// Si quieres un array en lugar de un objeto con keys:
-const groupedArray = Object.values(groupedByOrderId);
 
+    const groupedByOrderId = ordersAndOrderItem.reduce((acc, item) => {
+    const orderId = item.orderId;
 
-    return {
-      result,
-      groupedArray
+    if (!acc[orderId]) {
+      acc[orderId] = {
+        orderId,
+        total: item.ord_total,
+        items: []
+      };
     }
-    
-  }catch(error){
-     console.log("El error fue " , error)
-   
-    if (error instanceof RpcException) throw error;
 
-  
-    throw new RpcException({
-      status: 500,
-      message: 'Error interno al obtener el total de órdenes',
-      details: error.message || error,
+    acc[orderId].items.push({
+      quantity: item.itemsOrder_quantity,
+      productId: item.itemsOrder_productId,
+      price: item.itemsOrder_price,
+      updatedAt: item.itemsOrder_updatedAt,
     });
-  }
 
-}
+    return acc;
+  }, {} as Record<string, {
+    orderId: string,
+    total: string,
+    items: Array<{
+      quantity: number,
+      productId: string,
+      price: string,
+      updatedAt: string
+    }>
+  }>);
+
+  // Si quieres un array en lugar de un objeto con keys:
+  const groupedArray = Object.values(groupedByOrderId);
+
+
+      return {
+        result,
+        groupedArray
+      }
+      
+    }catch(error){
+      console.log("El error fue " , error)
+    
+      if (error instanceof RpcException) throw error;
+
+    
+      throw new RpcException({
+        status: 500,
+        message: 'Error interno al obtener el total de órdenes',
+        details: error.message || error,
+      });
+    }
+
+  }
 
 
   async getIdTodoList(id:string){
-    const todoListId = await this.orderRepository.findOneBy({id})
-    if(!todoListId){
-      throw new NotFoundException("Tarea no encontrada")
-    }
-    return {
-      status : HttpStatus.ACCEPTED,
-      data : todoListId
-    }
+      const todoListId = await this.orderRepository.findOneBy({id})
+      if(!todoListId){
+        throw new NotFoundException("Tarea no encontrada")
+      }
+      return {
+        status : HttpStatus.ACCEPTED,
+        data : todoListId
+      }
   }
 
   async deleteTodoList(id: string) {
-    const todoList = await this.orderRepository.findOneBy({ id });
-    if (!todoList) {
-      throw new NotFoundException('Tarea no encontrada');
-    }
+      const todoList = await this.orderRepository.findOneBy({ id });
+      if (!todoList) {
+        throw new NotFoundException('Tarea no encontrada');
+      }
 
-    const data = await this.orderRepository.remove(todoList);
-    return {
-      status: HttpStatus.ACCEPTED,
-      data,
-    };
+      const data = await this.orderRepository.remove(todoList);
+      return {
+        status: HttpStatus.ACCEPTED,
+        data,
+      };
   }
 
 
