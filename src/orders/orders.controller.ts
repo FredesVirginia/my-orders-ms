@@ -38,6 +38,17 @@ export class OrderController {
     async getProductByUserForMouth (@Payload() userId : string){
         return this.orderService.getProductForMountAverageByUser(userId)
     }
+
+    @MessagePattern('mouth-user-200')
+    async getMouthUser200(@Payload() mes : string){
+        return this.orderService.getMouthFromUser200(mes)
+    }
+    
+
+    @MessagePattern('user-200-mouth')
+    async getUserMouth200(@Payload() userId : string){
+        return this.orderService.getUser200mouth(userId)
+    }
     @MessagePattern('history-order')
     async getHistory (@Payload() userId : string){
         return this.orderService.getHistoryUser(userId)

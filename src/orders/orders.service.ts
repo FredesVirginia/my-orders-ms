@@ -12,6 +12,7 @@ import { Order } from "./entity/order.entity";
 import { RpcException } from '@nestjs/microservices';
 import { OrderDto } from './dto/Order-created.dto';
 import { OrderItem } from './entity/orderItem.entity';
+import { groupBy } from 'rxjs';
 
 
 @Injectable()
@@ -170,6 +171,58 @@ export class OrderService {
       message: error
     })
    }
+  }
+
+  async getUser200mouth(userId : string){
+   try {
+    const result = await this.orderRepository.createQueryBuilder('order')
+    .select('SUM(order.total)' , 'totalPorMesGastado')
+    .addSelect(`TO_CHAR(order.createdAt, 'YYYY-MM')`, 'mes')
+    .where('order.userId = :userId' , {userId})
+    .groupBy(`TO_CHAR(order.createdAt, 'YYYY-MM')`)
+    .having('SUM(order.total) > 200')
+    .getRawMany()
+
+      if(result.length === 0){
+        return {
+          message : `El usuarion con id ${userId} no tienes meses con gasto mayor a 200 pesos`
+        }
+      }
+
+      return result
+   }catch(error){
+    console.log("El error fue")
+    throw new RpcException({
+      message : error
+    })
+   }
+  }
+
+  async getMouthFromUser200(mes : string){
+    try {
+      const result = await this.orderRepository.createQueryBuilder('order')
+      .select('order.userId' , 'usuarios')
+      .addSelect('SUM(order.total)' , 'total')
+       .where(`TO_CHAR(order.createdAt, 'YYYY-MM') = :mes`, { mes })
+       .groupBy('order.userId')
+       .having('SUM(order.total) > 200')
+       .getRawMany()
+
+
+       if(result.length === 0){
+        return {
+          message : `No hay usuarios que hallan gastado un total mayor a 200 en el mes ${mes}`
+        }
+       }
+
+       return result
+      
+    }catch(error){
+      console.log("El error fue " , error)
+      throw new RpcException({
+        message : error
+      })
+    }
   }
 
   async getHistoryUser(userId : string){
