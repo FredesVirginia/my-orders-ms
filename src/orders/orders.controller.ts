@@ -43,6 +43,11 @@ export class OrderController {
     async getMouthUser200(@Payload() mes : string){
         return this.orderService.getMouthFromUser200(mes)
     }
+
+    @MessagePattern('product-best-seller-for-mouth')
+    async getProductsBestSellerMout(){
+        return this.orderService.getProductsMouthBestSellers()
+    }
     
 
     @MessagePattern('user-200-mouth')

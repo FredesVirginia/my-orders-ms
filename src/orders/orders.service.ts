@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { Order } from "./entity/order.entity";
 
 import { RpcException } from '@nestjs/microservices';
@@ -22,6 +22,7 @@ export class OrderService {
     private orderRepository: Repository<Order>,
      @InjectRepository(OrderItem)
     private readonly orderItemRepository: Repository<OrderItem>,
+     private readonly dataSource: DataSource,     
   ) {}
 
   async createOrder(orderDto: OrderDto) {
@@ -306,6 +307,41 @@ export class OrderService {
       });
     }
 
+  }
+
+  async getProductsMouthBestSellers(){
+    try{
+      const result =  await this.dataSource.query(`
+    WITH ventas_por_producto AS (
+  SELECT
+    TO_CHAR(o."createdAt", 'YYYY-MM') AS mes,
+    oi."productId",
+    SUM(oi.quantity) AS total_vendido,
+    ROW_NUMBER() OVER (
+      PARTITION BY TO_CHAR(o."createdAt", 'YYYY-MM')
+      ORDER BY SUM(oi.quantity) DESC
+    ) AS fila
+  FROM "order" o
+  JOIN order_item oi ON o.id = oi."orderId"
+  GROUP BY mes, oi."productId"
+)
+SELECT
+  mes,
+  "productId",
+  total_vendido
+FROM ventas_por_producto
+WHERE fila = 1;
+
+  `);
+
+  return result;
+
+    }catch(error){
+      console.log("El error fue" , error);
+      throw new RpcException({
+        message : error
+      })
+    }
   }
 
 
