@@ -11,3 +11,15 @@ export enum TodoListTitleNotAdmited{
     DEFAULT="default",
     PRUEBA="prueba"
 }
+
+export enum PaymentsEnum{
+    PAYMENT="payment",
+    PENDING="pending",
+    FAILED="failed"
+}
+
+export enum ShipmentEnum{
+    PENDING="pending", 
+    SHIPPED="shipped",
+    DELIVERED="delivered"
+}

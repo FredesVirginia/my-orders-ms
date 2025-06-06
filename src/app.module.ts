@@ -8,6 +8,9 @@ import { envs } from './orders/config';
 import { OrderModule } from './orders/orders.module';
 import { Order } from './orders/entity/order.entity';
 import { OrderItem } from './orders/entity/orderItem.entity';
+import { Payment } from './orders/entity/payment.entity';
+import { Shipment } from './orders/entity/shipped.entity';
+import { Coupon } from './orders/entity/coupon.entity';
 
 
 @Module({
@@ -21,7 +24,7 @@ import { OrderItem } from './orders/entity/orderItem.entity';
       username: envs.dbUser,
       password: envs.dbPassword,
       database: envs.dbName,
-      entities: [Order , OrderItem],
+      entities: [Order , OrderItem , Payment , Shipment , Coupon],
       synchronize: true,
     }),
   ],
