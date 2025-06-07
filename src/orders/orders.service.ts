@@ -2,48 +2,52 @@ import {
   HttpStatus,
   Injectable,
   InternalServerErrorException,
-  NotFoundException
+  NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
 import { DataSource, Repository } from 'typeorm';
-import { Order } from "./entity/order.entity";
+import { Order } from './entity/order.entity';
 
 import { RpcException } from '@nestjs/microservices';
 import { OrderDto } from './dto/Order-created.dto';
 import { OrderItem } from './entity/orderItem.entity';
 import { groupBy } from 'rxjs';
-
+import { CardItem } from './entity/cardItem.entity';
+import { AddToCartDto } from './dto/AddToCartItem.dto';
 
 @Injectable()
 export class OrderService {
   constructor(
     @InjectRepository(Order)
     private orderRepository: Repository<Order>,
-     @InjectRepository(OrderItem)
+    @InjectRepository(OrderItem)
     private readonly orderItemRepository: Repository<OrderItem>,
-     private readonly dataSource: DataSource,     
+    @InjectRepository(CardItem)
+    private readonly cartItemRepository: Repository<CardItem>,
+    private readonly dataSource: DataSource,
   ) {}
 
   async createOrder(orderDto: OrderDto) {
     try {
       const order = new Order();
       order.userId = orderDto.userId;
-      order.items = orderDto.items.map((item)=>{
+      order.items = orderDto.items.map((item) => {
         const orderItem = new OrderItem();
         orderItem.productId = item.productId;
         orderItem.quantity = item.quantity;
         orderItem.price = item.price;
         return orderItem;
-      })
+      });
 
-      const total = order.items.reduce((sum, item) => sum + parseInt(item.price) * item.quantity, 0);
-      order.total = total.toString()
-  return this.orderRepository.save(order);
+      const total = order.items.reduce(
+        (sum, item) => sum + parseInt(item.price) * item.quantity,
+        0,
+      );
+      order.total = total.toString();
+      return this.orderRepository.save(order);
     } catch (error) {
       console.log('EEROR FUE ', error);
-
-     
 
       throw new InternalServerErrorException('Error interno del servidor');
     }
@@ -60,69 +64,86 @@ export class OrderService {
     }
   }
 
-  async getAllOrdersByUser(userId : string){
-      console.log('ID recibido en microservicio:', userId); 
-      try {
-        
+  async addCart(userId : string , dto : AddToCartDto): Promise<CardItem>{
+    const {productId , quantity} = dto;
+    const existingItem = await this.cartItemRepository.findOne({
+      where : {userId , productId}
+    })
+    if(existingItem){
+      //SI YA EXISTE , ACTUALIZAMOS LA CANTIDAD
+      existingItem.quantity += quantity;
+      return this.cartItemRepository.save(existingItem)
+    }
 
-        const result = await this.orderItemRepository
-            .createQueryBuilder('item')
-            .innerJoin('item.order', 'order')
-            .select('item.productId', 'productId')
-            .addSelect('SUM(item.quantity)', 'total')
-            .where('order.userId = :userId', { userId })
-            .groupBy('item.productId')
-            .orderBy('total', 'DESC')
-            .getRawMany();
+    //SI NO EXISTE , CREMOS UNO NUEVO
 
-            console.log("EL RESULT ES " , result)
+    const newItem = this.cartItemRepository.create({
+      userId,
+      productId,
+      quantity
+    })
 
-        if (result.length > 0) {
-            return {
-              userIdsssssssssssssss: userId,
-              data: result,
-            };
-          }else {
-            return {
-              MESSAGE : "Ño hay Compras"
-            }
-          }
-
-       
-      }catch(error){
-        throw new RpcException({
-          error
-        })
-      }
-
-
+       return this.cartItemRepository.save(newItem);
   }
 
+  async getAllOrdersByUser(userId: string) {
+    console.log('ID recibido en microservicio:', userId);
+    try {
+      const result = await this.orderItemRepository
+        .createQueryBuilder('item')
+        .innerJoin('item.order', 'order')
+        .select('item.productId', 'productId')
+        .addSelect('SUM(item.quantity)', 'total')
+        .where('order.userId = :userId', { userId })
+        .groupBy('item.productId')
+        .orderBy('total', 'DESC')
+        .getRawMany();
+
+      console.log('EL RESULT ES ', result);
+
+      if (result.length > 0) {
+        return {
+          userIdsssssssssssssss: userId,
+          data: result,
+        };
+      } else {
+        return {
+          MESSAGE: 'Ño hay Compras',
+        };
+      }
+    } catch (error) {
+      throw new RpcException({
+        error,
+      });
+    }
+  }
 
   async getAllTotalOrderByUser(userId: string) {
     try {
-      const result1 = await this.orderRepository.createQueryBuilder('order')
-      .select('SUM(order.total)' , 'totalCompras')
-      .addSelect('COUNT(order.id)' , 'cantidadCompras')
-      .where('order.userId = :userId' , {userId})   
-      .getRawOne();
+      const result1 = await this.orderRepository
+        .createQueryBuilder('order')
+        .select('SUM(order.total)', 'totalCompras')
+        .addSelect('COUNT(order.id)', 'cantidadCompras')
+        .where('order.userId = :userId', { userId })
+        .getRawOne();
 
-      const result2 = await this.orderItemRepository.createQueryBuilder('orderItem')
-      .innerJoin('orderItem.order' , 'order')
-      .select('DISTINCT orderItem.productId' , 'productId')
-      .where('order.userId = :userId' , {userId})
-      .getRawMany()
+      const result2 = await this.orderItemRepository
+        .createQueryBuilder('orderItem')
+        .innerJoin('orderItem.order', 'order')
+        .select('DISTINCT orderItem.productId', 'productId')
+        .where('order.userId = :userId', { userId })
+        .getRawMany();
 
-      
-      const result3 = await this.orderItemRepository.createQueryBuilder('orderItem')
-      .innerJoin('orderItem.order' , 'order')
-      .select('orderItem.productId' , 'productId')
-      .addSelect('SUM(orderItem.quantity)' , 'total')
-      .where('order.userId = :userId' , {userId})
-      .groupBy('orderItem.productId')
-      .orderBy('total' , 'DESC')
-      .limit(1)
-      .getRawOne();
+      const result3 = await this.orderItemRepository
+        .createQueryBuilder('orderItem')
+        .innerJoin('orderItem.order', 'order')
+        .select('orderItem.productId', 'productId')
+        .addSelect('SUM(orderItem.quantity)', 'total')
+        .where('order.userId = :userId', { userId })
+        .groupBy('orderItem.productId')
+        .orderBy('total', 'DESC')
+        .limit(1)
+        .getRawOne();
 
       if (result1 === 0) {
         throw new RpcException({
@@ -133,15 +154,14 @@ export class OrderService {
       return {
         totalCompras: parseFloat(result1.totalCompras) || 0,
         cantidadCompras: parseInt(result1.cantidadCompras, 10) || 0,
-        productos: result2.map(p => p.productId),
+        productos: result2.map((p) => p.productId),
         productoMasComprado: result3 ? result3.productId : null,
       };
     } catch (error) {
-      console.log("El erroe fue " , error)
-    
+      console.log('El erroe fue ', error);
+
       if (error instanceof RpcException) throw error;
 
-    
       throw new RpcException({
         status: 500,
         message: 'Error interno al obtener el total de órdenes',
@@ -150,168 +170,166 @@ export class OrderService {
     }
   }
 
+  async getProductForMountAverageByUser(userId: string) {
+    try {
+      const result = await this.orderRepository
+        .createQueryBuilder('order')
+        .leftJoin('order.items', 'items')
+        .select(`TO_CHAR(order.createdAt, 'YYYY-MM')`, 'mes')
+        .addSelect('COUNT(DISTINCT items.productId)', 'cantidadProductos')
+        .addSelect('ROUND(AVG(items.quantity), 2)', 'promedio')
+        .where('order.userId = :userId', { userId })
+        .groupBy('mes')
+        .getRawMany();
 
-  async getProductForMountAverageByUser(userId : string){
-   try{
-      const result = await this.orderRepository.createQueryBuilder('order')
-      .leftJoin('order.items' , 'items')
-      .select(`TO_CHAR(order.createdAt, 'YYYY-MM')`, 'mes')
-      .addSelect('COUNT(DISTINCT items.productId)' , 'cantidadProductos')
-      .addSelect('ROUND(AVG(items.quantity), 2)', 'promedio')
-       .where('order.userId = :userId' , {userId})   
-       .groupBy('mes')
-       .getRawMany()
-
-    
-
-       return result
-      
-   }catch(error){
-    console.log("El error fue" , error)
-    throw new RpcException({
-      message: error
-    })
-   }
+      return result;
+    } catch (error) {
+      console.log('El error fue', error);
+      throw new RpcException({
+        message: error,
+      });
+    }
   }
 
-  async getUser200mouth(userId : string){
-   try {
-    const result = await this.orderRepository.createQueryBuilder('order')
-    .select('SUM(order.total)' , 'totalPorMesGastado')
-    .addSelect(`TO_CHAR(order.createdAt, 'YYYY-MM')`, 'mes')
-    .where('order.userId = :userId' , {userId})
-    .groupBy(`TO_CHAR(order.createdAt, 'YYYY-MM')`)
-    .having('SUM(order.total) > 200')
-    .getRawMany()
+  async getUser200mouth(userId: string) {
+    try {
+      const result = await this.orderRepository
+        .createQueryBuilder('order')
+        .select('SUM(order.total)', 'totalPorMesGastado')
+        .addSelect(`TO_CHAR(order.createdAt, 'YYYY-MM')`, 'mes')
+        .where('order.userId = :userId', { userId })
+        .groupBy(`TO_CHAR(order.createdAt, 'YYYY-MM')`)
+        .having('SUM(order.total) > 200')
+        .getRawMany();
 
-      if(result.length === 0){
+      if (result.length === 0) {
         return {
-          message : `El usuarion con id ${userId} no tienes meses con gasto mayor a 200 pesos`
-        }
+          message: `El usuarion con id ${userId} no tienes meses con gasto mayor a 200 pesos`,
+        };
       }
 
-      return result
-   }catch(error){
-    console.log("El error fue")
-    throw new RpcException({
-      message : error
-    })
-   }
-  }
-
-  async getMouthFromUser200(mes : string){
-    try {
-      const result = await this.orderRepository.createQueryBuilder('order')
-      .select('order.userId' , 'usuarios')
-      .addSelect('SUM(order.total)' , 'total')
-       .where(`TO_CHAR(order.createdAt, 'YYYY-MM') = :mes`, { mes })
-       .groupBy('order.userId')
-       .having('SUM(order.total) > 200')
-       .getRawMany()
-
-
-       if(result.length === 0){
-        return {
-          message : `No hay usuarios que hallan gastado un total mayor a 200 en el mes ${mes}`
-        }
-       }
-
-       return result
-      
-    }catch(error){
-      console.log("El error fue " , error)
+      return result;
+    } catch (error) {
+      console.log('El error fue');
       throw new RpcException({
-        message : error
-      })
+        message: error,
+      });
     }
   }
 
-  async getHistoryUser(userId : string){
-    try{
-      const result = await this.orderRepository.createQueryBuilder("order")
-      .select('SUM(order.total)' , 'totalComprado')
-      .addSelect('COUNT(order.id)' , 'cantidadDeOrdenes')
-      .where('order.userId = :userId' , {userId})
-      .getRawOne();
+  async getMouthFromUser200(mes: string) {
+    try {
+      const result = await this.orderRepository
+        .createQueryBuilder('order')
+        .select('order.userId', 'usuarios')
+        .addSelect('SUM(order.total)', 'total')
+        .where(`TO_CHAR(order.createdAt, 'YYYY-MM') = :mes`, { mes })
+        .groupBy('order.userId')
+        .having('SUM(order.total) > 200')
+        .getRawMany();
+
+      if (result.length === 0) {
+        return {
+          message: `No hay usuarios que hallan gastado un total mayor a 200 en el mes ${mes}`,
+        };
+      }
+
+      return result;
+    } catch (error) {
+      console.log('El error fue ', error);
+      throw new RpcException({
+        message: error,
+      });
+    }
+  }
+
+  async getHistoryUser(userId: string) {
+    try {
+      const result = await this.orderRepository
+        .createQueryBuilder('order')
+        .select('SUM(order.total)', 'totalComprado')
+        .addSelect('COUNT(order.id)', 'cantidadDeOrdenes')
+        .where('order.userId = :userId', { userId })
+        .getRawOne();
 
       const orders = await this.orderRepository.find({
-      where: { userId },
+        where: { userId },
+      });
 
-      
-  });
+      const ordersAndOrderItem = await this.orderItemRepository
+        .createQueryBuilder('itemsOrder')
+        .innerJoin('itemsOrder.order', 'ord')
+        .select([
+          'itemsOrder.orderId',
+          'ord.total',
+          'itemsOrder.quantity',
+          'itemsOrder.price',
+          'itemsOrder.productId',
+          'itemsOrder.updatedAt',
+        ])
+        .where('ord.userId = :userId', { userId })
+        //
+        .getRawMany();
 
-  const ordersAndOrderItem = await this.orderItemRepository.createQueryBuilder("itemsOrder")
-    .innerJoin('itemsOrder.order', 'ord')
-    .select([
-      'itemsOrder.orderId',
-      'ord.total',
-      'itemsOrder.quantity',
-      'itemsOrder.price',
-      'itemsOrder.productId',
-      'itemsOrder.updatedAt',
-    ])
-    .where('ord.userId = :userId', { userId })
-    // 
-    .getRawMany();
+      const groupedByOrderId = ordersAndOrderItem.reduce(
+        (acc, item) => {
+          const orderId = item.orderId;
 
+          if (!acc[orderId]) {
+            acc[orderId] = {
+              orderId,
+              total: item.ord_total,
+              items: [],
+            };
+          }
 
-    const groupedByOrderId = ordersAndOrderItem.reduce((acc, item) => {
-    const orderId = item.orderId;
+          acc[orderId].items.push({
+            quantity: item.itemsOrder_quantity,
+            productId: item.itemsOrder_productId,
+            price: item.itemsOrder_price,
+            updatedAt: item.itemsOrder_updatedAt,
+          });
 
-    if (!acc[orderId]) {
-      acc[orderId] = {
-        orderId,
-        total: item.ord_total,
-        items: []
-      };
-    }
+          return acc;
+        },
+        {} as Record<
+          string,
+          {
+            orderId: string;
+            total: string;
+            items: Array<{
+              quantity: number;
+              productId: string;
+              price: string;
+              updatedAt: string;
+            }>;
+          }
+        >,
+      );
 
-    acc[orderId].items.push({
-      quantity: item.itemsOrder_quantity,
-      productId: item.itemsOrder_productId,
-      price: item.itemsOrder_price,
-      updatedAt: item.itemsOrder_updatedAt,
-    });
-
-    return acc;
-  }, {} as Record<string, {
-    orderId: string,
-    total: string,
-    items: Array<{
-      quantity: number,
-      productId: string,
-      price: string,
-      updatedAt: string
-    }>
-  }>);
-
-  // Si quieres un array en lugar de un objeto con keys:
-  const groupedArray = Object.values(groupedByOrderId);
-
+      // Si quieres un array en lugar de un objeto con keys:
+      const groupedArray = Object.values(groupedByOrderId);
 
       return {
         result,
-        groupedArray
-      }
-      
-    }catch(error){
-      console.log("El error fue " , error)
-    
+        groupedArray,
+      };
+    } catch (error) {
+      console.log('El error fue ', error);
+
       if (error instanceof RpcException) throw error;
 
-    
       throw new RpcException({
         status: 500,
         message: 'Error interno al obtener el total de órdenes',
         details: error.message || error,
       });
     }
-
   }
 
-  async getProductsMouthBestSellers(){
-    try{
-      const result =  await this.dataSource.query(`
+  async getProductsMouthBestSellers() {
+    try {
+      const result = await this.dataSource.query(`
     WITH ventas_por_producto AS (
   SELECT
     TO_CHAR(o."createdAt", 'YYYY-MM') AS mes,
@@ -334,41 +352,38 @@ WHERE fila = 1;
 
   `);
 
-  return result;
-
-    }catch(error){
-      console.log("El error fue" , error);
+      return result;
+    } catch (error) {
+      console.log('El error fue', error);
       throw new RpcException({
-        message : error
-      })
+        message: error,
+      });
     }
   }
 
-
-  async getIdTodoList(id:string){
-      const todoListId = await this.orderRepository.findOneBy({id})
-      if(!todoListId){
-        throw new NotFoundException("Tarea no encontrada")
-      }
-      return {
-        status : HttpStatus.ACCEPTED,
-        data : todoListId
-      }
+  async getIdTodoList(id: string) {
+    const todoListId = await this.orderRepository.findOneBy({ id });
+    if (!todoListId) {
+      throw new NotFoundException('Tarea no encontrada');
+    }
+    return {
+      status: HttpStatus.ACCEPTED,
+      data: todoListId,
+    };
   }
 
   async deleteTodoList(id: string) {
-      const todoList = await this.orderRepository.findOneBy({ id });
-      if (!todoList) {
-        throw new NotFoundException('Tarea no encontrada');
-      }
+    const todoList = await this.orderRepository.findOneBy({ id });
+    if (!todoList) {
+      throw new NotFoundException('Tarea no encontrada');
+    }
 
-      const data = await this.orderRepository.remove(todoList);
-      return {
-        status: HttpStatus.ACCEPTED,
-        data,
-      };
+    const data = await this.orderRepository.remove(todoList);
+    return {
+      status: HttpStatus.ACCEPTED,
+      data,
+    };
   }
-
 
   // async lookForTodoListByKeyWord( word : string){
   //   const todoList = await this.todoListRepository.find({
