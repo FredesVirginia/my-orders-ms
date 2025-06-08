@@ -37,12 +37,18 @@ export class OrderController {
   }
 
   @MessagePattern('add-cart')
-  async addToCart(@Payload() req: any) {
-    console.log('WEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE');
-    const userId = req.user;
-    console.log('DATAAAAAAAAAAAAAAAA', userId);
+  async addToCart(@Payload() payload: { user: any , data : AddToCartDto}) {
+    console.log('WEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE');
+   console.log(payload)
 
-    return { MESSAGE: 'E' };
+
+    return this.orderService.addCart(payload.user.userId , payload.data)
+  }
+
+  @MessagePattern('get-add-cart-user')
+  async getAddToCart (@Payload() user : any){
+   
+    return this.orderService.getCartUserItem(user.user)
   }
 
   @MessagePattern('order-total-user')

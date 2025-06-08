@@ -11,6 +11,7 @@ import { OrderItem } from './orders/entity/orderItem.entity';
 import { Payment } from './orders/entity/payment.entity';
 import { Shipment } from './orders/entity/shipped.entity';
 import { Coupon } from './orders/entity/coupon.entity';
+import { CardItem } from './orders/entity/cardItem.entity';
 
 
 @Module({
@@ -24,7 +25,7 @@ import { Coupon } from './orders/entity/coupon.entity';
       username: envs.dbUser,
       password: envs.dbPassword,
       database: envs.dbName,
-      entities: [Order , OrderItem , Payment , Shipment , Coupon],
+      entities: [Order , OrderItem , Payment , Shipment , Coupon , CardItem],
       synchronize: true,
     }),
   ],

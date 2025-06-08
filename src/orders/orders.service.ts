@@ -64,15 +64,15 @@ export class OrderService {
     }
   }
 
-  async addCart(userId : string , dto : AddToCartDto): Promise<CardItem>{
-    const {productId , quantity} = dto;
+  async addCart(userId: string, dto: AddToCartDto): Promise<CardItem> {
+    const { productId, quantity } = dto;
     const existingItem = await this.cartItemRepository.findOne({
-      where : {userId , productId}
-    })
-    if(existingItem){
+      where: { userId, productId },
+    });
+    if (existingItem) {
       //SI YA EXISTE , ACTUALIZAMOS LA CANTIDAD
       existingItem.quantity += quantity;
-      return this.cartItemRepository.save(existingItem)
+      return this.cartItemRepository.save(existingItem);
     }
 
     //SI NO EXISTE , CREMOS UNO NUEVO
@@ -80,10 +80,25 @@ export class OrderService {
     const newItem = this.cartItemRepository.create({
       userId,
       productId,
-      quantity
-    })
+      quantity,
+    });
 
-       return this.cartItemRepository.save(newItem);
+    return this.cartItemRepository.save(newItem);
+  }
+
+  async getCartUserItem(userId: string) {
+    try {
+      const result = await this.cartItemRepository.find({
+        where: { userId },
+      });
+
+      return result;
+    } catch (error) {
+      console.log('El Erroe fue', error);
+      throw new RpcException({
+        message: error,
+      });
+    }
   }
 
   async getAllOrdersByUser(userId: string) {
