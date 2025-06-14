@@ -86,24 +86,24 @@ export class OrderService {
     return this.cartItemRepository.save(newItem);
   }
 
-  async deleteCart(userId : string , dto : UpdateCartDto){
-    const {productId , quantity} = dto;
+  async deleteCart(userId: string, dto: UpdateCartDto) {
+    const { productId, quantity } = dto;
     const existingItem = await this.cartItemRepository.findOne({
-      where : {userId , productId}
-    })
+      where: { userId, productId },
+    });
 
-    if(!existingItem){
-      console.log( `EL usuario no tiene el product ${productId}`)
+    if (!existingItem) {
+      console.log(`EL usuario no tiene el product ${productId}`);
       throw new RpcException({
-        message : `EL usuario no tiene el product ${productId}`
-      })
+        message: `EL usuario no tiene el product ${productId}`,
+      });
     }
 
-    const result = await this.cartItemRepository.remove(existingItem)
+    const result = await this.cartItemRepository.remove(existingItem);
     return {
-      message : "Producto eliminado",
-      result : result
-    }
+      message: 'Producto eliminado',
+      result: result,
+    };
   }
 
   async getCartUserItem(userId: string) {
@@ -113,6 +113,33 @@ export class OrderService {
       });
 
       return result;
+    } catch (error) {
+      console.log('El Erroe fue', error);
+      throw new RpcException({
+        message: error,
+      });
+    }
+  }
+
+  async deleteCartAfterOrderPost(userId: any) {
+    const user = userId.user;
+    try {
+      const result = await this.cartItemRepository.find({
+        where: { userId : user},
+      });
+
+      console.log("EL RESULT ES" , result)
+
+      if (result.length == 0) {
+        console.log(`EL usuario no tiene el product ${userId}`);
+        throw new RpcException({
+          message: `EL usuario no tiene el product ${userId}`,
+        });
+      }
+
+      const resultDelete = await this.cartItemRepository.remove(result)
+      console.log("BORRADO" , resultDelete)
+      return resultDelete
     } catch (error) {
       console.log('El Erroe fue', error);
       throw new RpcException({

@@ -12,8 +12,17 @@ export class CouponController {
     @MessagePattern('create-coupon')
     @Post()
     async createdCoupon(@Payload() couponDto : CreateCouponDto){
+       
         const newCoupon = await this.couponService.createCoupon(couponDto)
         return newCoupon
+    }
+
+
+    @MessagePattern('look-for')
+    @Post()
+    async lookForCoupon(@Payload() nameCoupon : string){
+        const coupon = await this.couponService.lookForCoupon(nameCoupon);
+        return coupon;
     }
   
 }

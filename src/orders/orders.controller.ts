@@ -43,6 +43,12 @@ export class OrderController {
     return this.orderService.addCart(payload.user.userId, payload.data);
   }
 
+  @MessagePattern('delete-cart-after-order')
+  async deleteCartAftherOrder(@Payload () userId : string){
+    console.log("EL USER ID ES " , userId)
+    return this.orderService.deleteCartAfterOrderPost(userId)
+  }
+
   @MessagePattern('delete-product-cart')
   async deleteCart(@Payload() payload: { user: any; data: UpdateCartDto }) {
     console.log('DELETE PRODUCT', payload);
