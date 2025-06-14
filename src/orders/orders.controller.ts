@@ -13,7 +13,7 @@ import { MessagePattern, Payload } from '@nestjs/microservices';
 
 import { OrderDto } from './dto/Order-created.dto';
 import { OrderService } from './orders.service';
-import { AddToCartDto } from './dto/AddToCartItem.dto';
+import { AddToCartDto, UpdateCartDto } from './dto/AddToCartItem.dto';
 
 @Controller('orders')
 export class OrderController {
@@ -21,7 +21,7 @@ export class OrderController {
 
   @MessagePattern('create-order')
   @Post()
-  async createOrder(@Body() orderDto: OrderDto) {
+  async createOrder(@Payload() orderDto: OrderDto) {
     const newTodoList = await this.orderService.createOrder(orderDto);
     return newTodoList;
   }
@@ -37,18 +37,21 @@ export class OrderController {
   }
 
   @MessagePattern('add-cart')
-  async addToCart(@Payload() payload: { user: any , data : AddToCartDto}) {
+  async addToCart(@Payload() payload: { user: any; data: AddToCartDto }) {
     console.log('WEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE');
-   console.log(payload)
+    console.log(payload);
+    return this.orderService.addCart(payload.user.userId, payload.data);
+  }
 
-
-    return this.orderService.addCart(payload.user.userId , payload.data)
+  @MessagePattern('delete-product-cart')
+  async deleteCart(@Payload() payload: { user: any; data: UpdateCartDto }) {
+    console.log('DELETE PRODUCT', payload);
+    return this.orderService.deleteCart(payload.user.userId, payload.data);
   }
 
   @MessagePattern('get-add-cart-user')
-  async getAddToCart (@Payload() user : any){
-   
-    return this.orderService.getCartUserItem(user.user)
+  async getAddToCart(@Payload() user: any) {
+    return this.orderService.getCartUserItem(user.user);
   }
 
   @MessagePattern('order-total-user')

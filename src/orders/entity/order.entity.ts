@@ -1,6 +1,6 @@
 import { Column, CreateDateColumn, Entity, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 import { OrderItem } from './orderItem.entity';
-import { Coupon } from './coupon.entity';
+
 import { Payment } from './payment.entity';
 import { Shipment } from './shipped.entity';
 @Entity()
@@ -16,8 +16,7 @@ export class Order {
   @OneToMany(()=>OrderItem , (item)=> item.order , { cascade : true})
   items : OrderItem[]
   
-  @ManyToOne(()=>Coupon , (coupon)=> coupon.orders , {nullable : true})
-  coupon: Coupon
+
 
   @OneToMany(()=>Payment , (payment)=> payment.order , {cascade : true})
   payment : Payment

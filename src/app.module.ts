@@ -10,13 +10,16 @@ import { Order } from './orders/entity/order.entity';
 import { OrderItem } from './orders/entity/orderItem.entity';
 import { Payment } from './orders/entity/payment.entity';
 import { Shipment } from './orders/entity/shipped.entity';
-import { Coupon } from './orders/entity/coupon.entity';
+
 import { CardItem } from './orders/entity/cardItem.entity';
+import { CouponModule } from './coupon/coupon.module';
+import { Coupon } from './coupon/entity/coupon.entity';
 
 
 @Module({
   imports: [
     OrderModule,
+    CouponModule,
 
     TypeOrmModule.forRoot({
       type: 'postgres',
@@ -25,9 +28,11 @@ import { CardItem } from './orders/entity/cardItem.entity';
       username: envs.dbUser,
       password: envs.dbPassword,
       database: envs.dbName,
-      entities: [Order , OrderItem , Payment , Shipment , Coupon , CardItem],
+      entities: [Order , OrderItem , Payment , Shipment , CardItem , Coupon],
       synchronize: true,
     }),
+
+   
   ],
   controllers: [AppController],
   providers: [

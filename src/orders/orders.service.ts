@@ -14,7 +14,7 @@ import { OrderDto } from './dto/Order-created.dto';
 import { OrderItem } from './entity/orderItem.entity';
 import { groupBy } from 'rxjs';
 import { CardItem } from './entity/cardItem.entity';
-import { AddToCartDto } from './dto/AddToCartItem.dto';
+import { AddToCartDto, UpdateCartDto } from './dto/AddToCartItem.dto';
 
 @Injectable()
 export class OrderService {
@@ -84,6 +84,26 @@ export class OrderService {
     });
 
     return this.cartItemRepository.save(newItem);
+  }
+
+  async deleteCart(userId : string , dto : UpdateCartDto){
+    const {productId , quantity} = dto;
+    const existingItem = await this.cartItemRepository.findOne({
+      where : {userId , productId}
+    })
+
+    if(!existingItem){
+      console.log( `EL usuario no tiene el product ${productId}`)
+      throw new RpcException({
+        message : `EL usuario no tiene el product ${productId}`
+      })
+    }
+
+    const result = await this.cartItemRepository.remove(existingItem)
+    return {
+      message : "Producto eliminado",
+      result : result
+    }
   }
 
   async getCartUserItem(userId: string) {
