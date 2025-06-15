@@ -1,5 +1,6 @@
 // src/coupon/coupon.entity.ts
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Order } from 'src/orders/entity/order.entity';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
 
 @Entity()
 export class Coupon {
@@ -33,6 +34,11 @@ export class Coupon {
   @Column({ nullable: true })
   maxUsage?: number; // Límite de usos
 
+
+   // Relación inversa: un cupón puede estar en muchas órdenes
+  @OneToMany(() => Order, order => order.coupon)
+  orders: Order[];
+  
   @CreateDateColumn()
   createdAt: Date;
 

@@ -28,7 +28,12 @@ import { Coupon } from './coupon/entity/coupon.entity';
       username: envs.dbUser,
       password: envs.dbPassword,
       database: envs.dbName,
-      entities: [Order , OrderItem , Payment , Shipment , CardItem , Coupon],
+      
+
+
+      autoLoadEntities: true,
+      entities: ['dist/**/*.entity{.ts,.js}'],
+      migrations: ['dist/migration/*.js'],
       synchronize: true,
     }),
 

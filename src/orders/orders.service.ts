@@ -112,7 +112,11 @@ export class OrderService {
         where: { userId },
       });
 
-      return result;
+      if(result.length > 0){
+        return  result
+      }
+
+      return []
     } catch (error) {
       console.log('El Erroe fue', error);
       throw new RpcException({
