@@ -28,8 +28,9 @@ export class OrderService {
     private readonly dataSource: DataSource,
   ) {}
 
-  async createOrder(orderDto: OrderDto) {
+  async createOrder(couponId : string , orderDto: OrderDto) {
     try {
+      console.log("EL CUPON ES rrrrrrrrrrrrrrrrrrrrrrrr" , couponId)
       const order = new Order();
       order.userId = orderDto.userId;
       order.items = orderDto.items.map((item) => {

@@ -21,9 +21,13 @@ export class OrderController {
 
   @MessagePattern('create-order')
   @Post()
-  async createOrder(@Payload() orderDto: OrderDto) {
-    const newTodoList = await this.orderService.createOrder(orderDto);
+  async createOrder(@Payload() payload : any ) {
+    console.log("El payloadr CONTROLLER EN MICROSERVICIO   " , payload)
+    const { orderDto , couponId} = payload;
+    console.log("COUPON ID" , couponId)
+    const newTodoList = await this.orderService.createOrder(couponId, orderDto);
     return newTodoList;
+    
   }
 
   // @Get()
@@ -45,13 +49,13 @@ export class OrderController {
 
   @MessagePattern('delete-cart-after-order')
   async deleteCartAftherOrder(@Payload () userId : string){
-    console.log("EL USER ID ES " , userId)
+  
     return this.orderService.deleteCartAfterOrderPost(userId)
   }
 
   @MessagePattern('delete-product-cart')
   async deleteCart(@Payload() payload: { user: any; data: UpdateCartDto }) {
-    console.log('DELETE PRODUCT', payload);
+   
     return this.orderService.deleteCart(payload.user.userId, payload.data);
   }
 

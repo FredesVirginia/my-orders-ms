@@ -25,6 +25,11 @@ export class Order {
   @Column("decimal")
   total:string
 
+
+  
+  @Column("decimal" , { nullable: true })
+  subTotal:string
+
   @OneToOne(()=>Shipment , (shipment)=> shipment.order , { cascade : true})
   shipment : Shipment
 
