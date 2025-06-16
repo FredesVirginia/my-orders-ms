@@ -15,6 +15,7 @@ import { OrderItem } from './entity/orderItem.entity';
 import { groupBy } from 'rxjs';
 import { CardItem } from './entity/cardItem.entity';
 import { AddToCartDto, UpdateCartDto } from './dto/AddToCartItem.dto';
+import { Coupon } from 'src/coupon/entity/coupon.entity';
 
 @Injectable()
 export class OrderService {
@@ -28,31 +29,102 @@ export class OrderService {
     private readonly dataSource: DataSource,
   ) {}
 
-  async createOrder(couponId : string , orderDto: OrderDto) {
-    try {
-      console.log("EL CUPON ES rrrrrrrrrrrrrrrrrrrrrrrr" , couponId)
-      const order = new Order();
-      order.userId = orderDto.userId;
-      order.items = orderDto.items.map((item) => {
-        const orderItem = new OrderItem();
-        orderItem.productId = item.productId;
-        orderItem.quantity = item.quantity;
-        orderItem.price = item.price;
-        return orderItem;
-      });
+  // async createOrder(orderDto: OrderDto, couponId?: Coupon) {
+  //   try {
+  //     if (couponId) {
+  //       console.log('POR AQUI', couponId);
+  //       const coupon = couponId[0];
+  //       const descuento = couponId.discountPercent;
+  //       const order = new Order();
+  //       order.userId = orderDto.userId;
+  //       order.items = orderDto.items.map((item) => {
+  //         const orderItem = new OrderItem();
+  //         orderItem.productId = item.productId;
+  //         orderItem.quantity = item.quantity;
+  //         orderItem.price = item.price;
+  //         return orderItem;
+  //       });
 
-      const total = order.items.reduce(
-        (sum, item) => sum + parseInt(item.price) * item.quantity,
-        0,
-      );
+  //       const total = order.items.reduce(
+  //         (sum, item) => sum + parseInt(item.price) * item.quantity,
+  //         0,
+  //       );
+
+  //       const discount = (total * descuento!) / 100;
+  //       const totalWithDiscount = total - discount;
+  //       order.subTotal = total.toString();
+  //       order.total = totalWithDiscount.toString();
+  //       order.coupon = coupon;
+
+  //       return this.orderRepository.save(order);
+  //     } else {
+  //       const order = new Order();
+  //       order.userId = orderDto.userId;
+  //       order.items = orderDto.items.map((item) => {
+  //         const orderItem = new OrderItem();
+  //         orderItem.productId = item.productId;
+  //         orderItem.quantity = item.quantity;
+  //         orderItem.price = item.price;
+  //         return orderItem;
+  //       });
+
+  //       const total = order.items.reduce(
+  //         (sum, item) => sum + parseInt(item.price) * item.quantity,
+  //         0,
+  //       );
+  //       order.total = total.toString();
+  //       return this.orderRepository.save(order);
+  //     }
+  //   } catch (error) {
+  //     console.log('EEROR FUE ', error);
+
+  //     throw new InternalServerErrorException('Error interno del servidor');
+  //   }
+  // }
+
+
+
+  async createOrder(orderDto: OrderDto, couponId?: Coupon) {
+  try {
+    const order = new Order();
+    order.userId = orderDto.userId;
+    order.items = orderDto.items.map((item) => {
+      const orderItem = new OrderItem();
+      orderItem.productId = item.productId;
+      orderItem.quantity = item.quantity;
+      orderItem.price = item.price;
+      return orderItem;
+    });
+
+    const total = order.items.reduce(
+      (sum, item) => sum + parseFloat(item.price) * item.quantity,
+      0,
+    );
+
+    order.subTotal = total.toString();
+
+    if (couponId) {
+      // Si couponId es un array, extraemos el primer elemento
+      const coupon = Array.isArray(couponId) ? couponId[0] : couponId;
+      const descuento = parseFloat(coupon.discountPercent);
+
+      const discount = (total * descuento) / 100;
+      const totalWithDiscount = total - discount;
+      console.log("TOTAL WITH DIOSS" , totalWithDiscount)
+      order.total = totalWithDiscount.toString();
+      order.coupon = coupon;
+    } else {
+      console.log("TOTAL" , total)
       order.total = total.toString();
-      return this.orderRepository.save(order);
-    } catch (error) {
-      console.log('EEROR FUE ', error);
-
-      throw new InternalServerErrorException('Error interno del servidor');
     }
+
+    return this.orderRepository.save(order);
+  } catch (error) {
+    console.error('ERROR:', error);
+    throw new InternalServerErrorException('Error interno del servidor');
   }
+}
+
 
   async getAllOrder() {
     try {
@@ -113,11 +185,11 @@ export class OrderService {
         where: { userId },
       });
 
-      if(result.length > 0){
-        return  result
+      if (result.length > 0) {
+        return result;
       }
 
-      return []
+      return [];
     } catch (error) {
       console.log('El Erroe fue', error);
       throw new RpcException({
@@ -130,10 +202,8 @@ export class OrderService {
     const user = userId.user;
     try {
       const result = await this.cartItemRepository.find({
-        where: { userId : user},
+        where: { userId: user },
       });
-
-      console.log("EL RESULT ES" , result)
 
       if (result.length == 0) {
         console.log(`EL usuario no tiene el product ${userId}`);
@@ -142,9 +212,9 @@ export class OrderService {
         });
       }
 
-      const resultDelete = await this.cartItemRepository.remove(result)
-      console.log("BORRADO" , resultDelete)
-      return resultDelete
+      const resultDelete = await this.cartItemRepository.remove(result);
+
+      return resultDelete;
     } catch (error) {
       console.log('El Erroe fue', error);
       throw new RpcException({

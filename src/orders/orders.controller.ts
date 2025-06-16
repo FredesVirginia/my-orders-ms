@@ -23,9 +23,9 @@ export class OrderController {
   @Post()
   async createOrder(@Payload() payload : any ) {
     console.log("El payloadr CONTROLLER EN MICROSERVICIO   " , payload)
-    const { orderDto , couponId} = payload;
-    console.log("COUPON ID" , couponId)
-    const newTodoList = await this.orderService.createOrder(couponId, orderDto);
+    const { orderDto ,coupon} = payload;
+    console.log("COUPON ID" , coupon)
+    const newTodoList = await this.orderService.createOrder( orderDto , coupon);
     return newTodoList;
     
   }
@@ -42,8 +42,7 @@ export class OrderController {
 
   @MessagePattern('add-cart')
   async addToCart(@Payload() payload: { user: any; data: AddToCartDto }) {
-    console.log('WEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE');
-    console.log(payload);
+
     return this.orderService.addCart(payload.user.userId, payload.data);
   }
 
