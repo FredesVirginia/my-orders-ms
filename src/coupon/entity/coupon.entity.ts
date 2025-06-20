@@ -19,10 +19,10 @@ export class Coupon {
   @Column('decimal', { nullable: true })
   discountPercent?: number; // Descuento porcentual (ej: 15%)
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'date', nullable: true })
   validFrom?: Date;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'date', nullable: true })
   validUntil?: Date;
 
   @Column({ default: true })

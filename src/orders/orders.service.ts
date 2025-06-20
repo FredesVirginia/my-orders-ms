@@ -82,49 +82,60 @@ export class OrderService {
   //   }
   // }
 
-
-
   async createOrder(orderDto: OrderDto, couponId?: Coupon) {
-  try {
-    const order = new Order();
-    order.userId = orderDto.userId;
-    order.items = orderDto.items.map((item) => {
-      const orderItem = new OrderItem();
-      orderItem.productId = item.productId;
-      orderItem.quantity = item.quantity;
-      orderItem.price = item.price;
-      return orderItem;
-    });
+    try {
+      const order = new Order();
+      order.userId = orderDto.userId;
+      order.items = orderDto.items.map((item) => {
+        const orderItem = new OrderItem();
+        orderItem.productId = item.productId;
+        orderItem.quantity = item.quantity;
+        orderItem.price = item.price;
+        return orderItem;
+      });
 
-    const total = order.items.reduce(
-      (sum, item) => sum + parseFloat(item.price) * item.quantity,
-      0,
-    );
+      const total = order.items.reduce(
+        (sum, item) => sum + parseFloat(item.price) * item.quantity,
+        0,
+      );
 
-    order.subTotal = total.toString();
+      order.subTotal = total.toString();
 
-    if (couponId) {
-      // Si couponId es un array, extraemos el primer elemento
-      const coupon = Array.isArray(couponId) ? couponId[0] : couponId;
-      const descuento = parseFloat(coupon.discountPercent);
+      if (couponId) {
+        const coupon = Array.isArray(couponId) ? couponId[0] : couponId;
+        const now = new Date();
+        const fechaSolo = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate(),
+        );
+        const validFrom = new Date(coupon.validFrom);
+        const validUntil = new Date(coupon.validUntil);
 
-      const discount = (total * descuento) / 100;
-      const totalWithDiscount = total - discount;
-      console.log("TOTAL WITH DIOSS" , totalWithDiscount)
-      order.total = totalWithDiscount.toString();
-      order.coupon = coupon;
-    } else {
-      console.log("TOTAL" , total)
-      order.total = total.toString();
+        if (fechaSolo >= validFrom && fechaSolo <= validUntil) {
+          const descuento = parseFloat(coupon.discountPercent);
+
+          const discount = (total * descuento) / 100;
+          const totalWithDiscount = total - discount;
+
+          order.total = totalWithDiscount.toString();
+          order.coupon = coupon;
+        } else {
+          
+          throw new RpcException("Cupon no valido");
+
+        }
+      } else {
+        console.log('TOTAL', total);
+        order.total = total.toString();
+      }
+
+      return this.orderRepository.save(order);
+    } catch (error) {
+      console.error('ERROR:', error);
+      throw new InternalServerErrorException('Error interno del servidor');
     }
-
-    return this.orderRepository.save(order);
-  } catch (error) {
-    console.error('ERROR:', error);
-    throw new InternalServerErrorException('Error interno del servidor');
   }
-}
-
 
   async getAllOrder() {
     try {
