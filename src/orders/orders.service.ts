@@ -183,7 +183,10 @@ export class OrderService {
   }
 
   async getAllOrdersByUser(userId: string) {
-    console.log('IDiiiiiiiiiiiiiiiiiiiiiiiiiii recibido en  microservicio:', userId);
+    console.log(
+      'IDiiiiiiiiiiiiiiiiiiiiiiiiiii recibido en  microservicio:',
+      userId,
+    );
     try {
       const result = await this.orderItemRepository
         .createQueryBuilder('item')
@@ -195,7 +198,7 @@ export class OrderService {
 
         .getRawMany();
 
-        console.log("RESIL" , result)
+      console.log('RESIL', result);
 
       if (result.length > 0) {
         return {
@@ -425,28 +428,30 @@ export class OrderService {
 
   async getProductsMouthBestSellers() {
     try {
-      const result = await this.dataSource.query(`
-    WITH ventas_por_producto AS (
-  SELECT
-    TO_CHAR(o."createdAt", 'YYYY-MM') AS mes,
-    oi."productId",
-    SUM(oi.quantity) AS total_vendido,
-    ROW_NUMBER() OVER (
-      PARTITION BY TO_CHAR(o."createdAt", 'YYYY-MM')
-      ORDER BY SUM(oi.quantity) DESC
-    ) AS fila
-  FROM "order" o
-  JOIN order_item oi ON o.id = oi."orderId"
-  GROUP BY mes, oi."productId"
-)
-SELECT
-  mes,
-  "productId",
-  total_vendido
-FROM ventas_por_producto
-WHERE fila = 1;
+                const result = await this.dataSource.query(`
+              WITH ventas_por_producto AS (
+            SELECT
+              TO_CHAR(o."createdAt", 'YYYY-MM') AS mes,
+              oi."productId",
+              SUM(oi.quantity) AS total_vendido,
+              ROW_NUMBER() OVER (
+                PARTITION BY TO_CHAR(o."createdAt", 'YYYY-MM')
+                ORDER BY SUM(oi.quantity) DESC
+              ) AS fila
+            FROM "order" o
+            JOIN order_item oi ON o.id = oi."orderId"
+            GROUP BY mes, oi."productId"
+          )
+          SELECT
+            mes,
+            "productId",
+            total_vendido
+          FROM ventas_por_producto
+          WHERE fila = 1;
 
-  `);
+            `);
+
+            console.log("DATA" , result)
 
       return result;
     } catch (error) {
