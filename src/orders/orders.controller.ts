@@ -36,7 +36,8 @@ export class OrderController {
   // }
 
   @MessagePattern('order-by-user')
-  async getAllOrdersByUser(@Payload() userId: string) {
+  async getOrdersByUser(@Payload() userId: string) {
+    console.log("POR AQUIIIIIIIIIIIIIIIIIIIIIIIIIIIII")
     return this.orderService.getAllOrdersByUser(userId);
   }
 
@@ -97,13 +98,5 @@ export class OrderController {
     return this.orderService.getAllOrdersByUser(userId);
   }
 
-  @Get(':id')
-  async getTodoListId(@Param('id', new ParseUUIDPipe()) id: string) {
-    return this.orderService.getIdTodoList(id);
-  }
-
-  @Delete(':id')
-  async deleteTodoList(@Param('id', new ParseUUIDPipe()) id: string) {
-    return this.orderService.deleteTodoList(id);
-  }
+  
 }

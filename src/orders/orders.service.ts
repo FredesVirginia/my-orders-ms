@@ -29,59 +29,6 @@ export class OrderService {
     private readonly dataSource: DataSource,
   ) {}
 
-  // async createOrder(orderDto: OrderDto, couponId?: Coupon) {
-  //   try {
-  //     if (couponId) {
-  //       console.log('POR AQUI', couponId);
-  //       const coupon = couponId[0];
-  //       const descuento = couponId.discountPercent;
-  //       const order = new Order();
-  //       order.userId = orderDto.userId;
-  //       order.items = orderDto.items.map((item) => {
-  //         const orderItem = new OrderItem();
-  //         orderItem.productId = item.productId;
-  //         orderItem.quantity = item.quantity;
-  //         orderItem.price = item.price;
-  //         return orderItem;
-  //       });
-
-  //       const total = order.items.reduce(
-  //         (sum, item) => sum + parseInt(item.price) * item.quantity,
-  //         0,
-  //       );
-
-  //       const discount = (total * descuento!) / 100;
-  //       const totalWithDiscount = total - discount;
-  //       order.subTotal = total.toString();
-  //       order.total = totalWithDiscount.toString();
-  //       order.coupon = coupon;
-
-  //       return this.orderRepository.save(order);
-  //     } else {
-  //       const order = new Order();
-  //       order.userId = orderDto.userId;
-  //       order.items = orderDto.items.map((item) => {
-  //         const orderItem = new OrderItem();
-  //         orderItem.productId = item.productId;
-  //         orderItem.quantity = item.quantity;
-  //         orderItem.price = item.price;
-  //         return orderItem;
-  //       });
-
-  //       const total = order.items.reduce(
-  //         (sum, item) => sum + parseInt(item.price) * item.quantity,
-  //         0,
-  //       );
-  //       order.total = total.toString();
-  //       return this.orderRepository.save(order);
-  //     }
-  //   } catch (error) {
-  //     console.log('EEROR FUE ', error);
-
-  //     throw new InternalServerErrorException('Error interno del servidor');
-  //   }
-  // }
-
   async createOrder(orderDto: OrderDto, couponId?: Coupon) {
     try {
       const order = new Order();
@@ -121,9 +68,7 @@ export class OrderService {
           order.total = totalWithDiscount.toString();
           order.coupon = coupon;
         } else {
-          
-          throw new RpcException("Cupon no valido");
-
+          throw new RpcException('Cupon no valido');
         }
       } else {
         console.log('TOTAL', total);
@@ -132,7 +77,10 @@ export class OrderService {
 
       return this.orderRepository.save(order);
     } catch (error) {
-      console.error('ERROR:', error);
+      if (error instanceof RpcException) {
+        throw error; // 👈 si ya es RpcException, no lo toques
+      }
+
       throw new InternalServerErrorException('Error interno del servidor');
     }
   }
@@ -235,23 +183,23 @@ export class OrderService {
   }
 
   async getAllOrdersByUser(userId: string) {
-    console.log('ID recibido en microservicio:', userId);
+    console.log('IDiiiiiiiiiiiiiiiiiiiiiiiiiii recibido en  microservicio:', userId);
     try {
       const result = await this.orderItemRepository
         .createQueryBuilder('item')
         .innerJoin('item.order', 'order')
         .select('item.productId', 'productId')
-        .addSelect('SUM(item.quantity)', 'total')
+        .addSelect('SUM(item.quantity)', 'quantity')
         .where('order.userId = :userId', { userId })
         .groupBy('item.productId')
-        .orderBy('total', 'DESC')
+
         .getRawMany();
 
-      console.log('EL RESULT ES ', result);
+        console.log("RESIL" , result)
 
       if (result.length > 0) {
         return {
-          userIdsssssssssssssss: userId,
+          userId: userId,
           data: result,
         };
       } else {
@@ -508,44 +456,4 @@ WHERE fila = 1;
       });
     }
   }
-
-  async getIdTodoList(id: string) {
-    const todoListId = await this.orderRepository.findOneBy({ id });
-    if (!todoListId) {
-      throw new NotFoundException('Tarea no encontrada');
-    }
-    return {
-      status: HttpStatus.ACCEPTED,
-      data: todoListId,
-    };
-  }
-
-  async deleteTodoList(id: string) {
-    const todoList = await this.orderRepository.findOneBy({ id });
-    if (!todoList) {
-      throw new NotFoundException('Tarea no encontrada');
-    }
-
-    const data = await this.orderRepository.remove(todoList);
-    return {
-      status: HttpStatus.ACCEPTED,
-      data,
-    };
-  }
-
-  // async lookForTodoListByKeyWord( word : string){
-  //   const todoList = await this.todoListRepository.find({
-  //     where : [
-  //       {title : ILike(`%${word}%`)},
-  //       {description : ILike(`%${word}%`)},
-  //       {content : ILike(`%${word}%`)}
-  //     ]
-  //   })
-
-  //    if(!todoList){
-  //     throw new NotFoundException(`No se encontraron tareas con la palabra clave ${word}`)
-  //    }
-
-  //    return todoList
-  // }
 }

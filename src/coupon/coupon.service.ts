@@ -31,7 +31,7 @@ export class CouponService {
 
   async lookForCoupon(nameCode: string) {
     try {
-      const foundCoupon = await this.couponRepository.find({
+      const foundCoupon = await this.couponRepository.findOne({
         where: { name: nameCode },
       });
 

@@ -1,8 +1,7 @@
 import { Controller, Post } from '@nestjs/common';
+import { MessagePattern, Payload } from '@nestjs/microservices';
 import { CouponService } from './coupon.service';
 import { CreateCouponDto } from './dto/Coupon.dto';
-import { Coupon } from './entity/coupon.entity';
-import { MessagePattern, Payload } from '@nestjs/microservices';
 
 @Controller('coupon')
 export class CouponController {
